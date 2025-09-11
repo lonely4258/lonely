@@ -17,6 +17,7 @@
       --neon-pink: #ff2a6d;
       --neon-yellow: #ffff00;
       --text-color: #e0e0e0;
+      --error-color: #ff3333;
     }
     
     * {
@@ -533,7 +534,29 @@
   </div>
 
 <script>
+// القائمة السوداء - المواقع المحظورة
+const BLACKLIST = [
+  "https://lonely4258.github.io/lonely/",
+  "https://lonely4258.github.io/lonely",
+  "http://lonely4258.github.io/lonely/",
+  "http://lonely4258.github.io/lonely"
+];
+
+// دالة للتحقق من القائمة السوداء
+function isBlacklisted(url) {
+  const normalizedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+  return BLACKLIST.some(blacklistedUrl => {
+    const normalizedBlacklisted = blacklistedUrl.endsWith('/') ? blacklistedUrl.slice(0, -1) : blacklistedUrl;
+    return normalizedUrl === normalizedBlacklisted;
+  });
+}
+
 async function fetchFile(link, zip) {
+  // التحقق من القائمة السوداء قبل جلب أي ملف
+  if (isBlacklisted(link)) {
+    throw new Error("هذا الموقع محظور ولا يمكن الوصول إلى ملفاته");
+  }
+  
   try {
     let r = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(link));
     if (!r.ok) throw new Error("فشل AllOrigins");
@@ -568,6 +591,13 @@ async function fetchFiles(){
     return;
   }
 
+  // التحقق من القائمة السوداء قبل أي عملية
+  if (isBlacklisted(url)) {
+    status.textContent="❌ هذا الموقع محظور ولا يمكن الوصول إلى ملفاته";
+    status.style.color = "#ff3333";
+    return;
+  }
+
   status.textContent="⏳ جاري جلب الموقع...";
   status.style.color = "#00ff41";
   download.style.display="none";
@@ -592,7 +622,11 @@ async function fetchFiles(){
         const v = el.getAttribute(attr);
         if(v){ 
           try {
-            links.add(new URL(v, url).href); 
+            const fullUrl = new URL(v, url).href;
+            // التحقق من القائمة السوداء قبل إضافة الرابط
+            if (!isBlacklisted(fullUrl)) {
+              links.add(fullUrl); 
+            }
           } catch(e) {
             console.error("رابط غير صالح:", v);
           }
@@ -655,4 +689,4 @@ document.getElementById("url").addEventListener("keypress", function(e) {
 </script>
 
 </body>
-  </html>
+</html>
